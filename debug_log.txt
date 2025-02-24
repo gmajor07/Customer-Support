@@ -1,0 +1,5 @@
+Array
+(
+    [code] => 120
+    [message] => Invalid api_key and/or secret_id
+)
