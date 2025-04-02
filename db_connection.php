@@ -1,9 +1,9 @@
 <?php
 // Database configuration
-$server = "localhost";
-$username = "root";
-$password = "";
-$database = "customer";
+$server = "web195";
+$username = "naretcot_root";
+$password = "1!0jJsqP9ScP0*";
+$database = "naretcot_customer";
 
 // Create a connection to the database
 $conn = new mysqli($server, $username, $password, $database);

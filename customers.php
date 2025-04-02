@@ -1,12 +1,29 @@
 <?php
+session_start();
 require 'header.php';
 require 'db_connection.php';
 
+// Ensure session variables exist
+if (!isset($_SESSION['user_id']) || !isset($_SESSION['role'])) {
+    die("Unauthorized access!");
+}
 
+$loggedInUserId = $_SESSION['user_id'];
+$loggedInUserRole = $_SESSION['role'];
 
 // Fetch Customers
-$sql = "SELECT * FROM customers ORDER BY id DESC";
-$result = $conn->query($sql);
+if ($loggedInUserRole == 'admin') {
+    $sql = "SELECT * FROM customers ORDER BY id DESC"; // Admin sees all customers
+    $stmt = $conn->prepare($sql);
+} else {
+    $sql = "SELECT * FROM customers WHERE registered_by_staff = ? ORDER BY id DESC"; // Staff sees only their customers
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("i", $loggedInUserId);
+}
+
+$stmt->execute();
+$result = $stmt->get_result();
+$hasCustomers = ($result->num_rows > 0); // Check if there are customers
 ?>
 
 <!DOCTYPE html>
@@ -17,100 +34,63 @@ $result = $conn->query($sql);
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css">
 </head>
 <body>
-    
 
 <div class="container mt-5">
-<?php
-if (isset($_GET['update'])) {
-    if ($_GET['update'] == "success") {
-        echo "<div class='alert alert-success' id='notification'>Customer details updated successfully!</div>";
+    <?php
+    if (!$hasCustomers) {
+        echo "<p class='alert alert-warning'>No customers found.</p>";
     }
-    elseif ($_GET['update'] == "error") {
-        echo "<div class='alert alert-danger' id='notification'>Error updating customer details. Try again!</div>";
-    }
-}
-
-if (isset($_GET['delete'])) {
-   
-if ($_GET['delete'] == "success") {
-    echo "<div class='alert alert-success' id='notification'>Customer deleted successfully!</div>";
-}
-    elseif ($_GET['delete'] == "error") {
-        echo "<div class='alert alert-danger' id='notification'>Error deleteing customer. Try again!</div>";
-    }
-}
+    ?>
 
 
-if (isset($_GET['status'])) {
-   
-    if ($_GET['status'] == "success") {
-        echo "<div class='alert alert-success' id='notification'>Customer status updated successfully!</div>";
-    }
-        elseif ($_GET['delete'] == "error") {
-            echo "<div class='alert alert-danger' id='notification'>Error updating status. Try again!</div>";
-        }
-    }
+    <?php if ($hasCustomers) : ?>
+        <center><h1>Customers List</h1></center>
 
-?>
+        <input type="text" id="search" class="form-control" placeholder="Search customers...">
+        <div id="searchResults"></div>
 
-<script>
-    // Hide notification after 3 seconds (3000ms)
-    setTimeout(function() {
-        let notification = document.getElementById('notification');
-        if (notification) {
-            notification.style.display = 'none';
-        }
-    }, 5000);
-</script>
+        <div class="table-responsive">
+            <table class="table table-striped table-sm table-bordered" id="dataTable">
+                <thead>
+                    <tr>
+                        <th>S/N</th>
+                        <th>Username</th>
+                        <th class="d-none d-sm-table-cell">Phone Number</th>
+                        <th>Status</th>
+                        <th class="d-none d-md-table-cell">Payment Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php
+                    $sn = 1; // Initialize Serial Number
+                    while ($row = $result->fetch_assoc()) { ?>
+                        <tr>
+                            <td><?php echo $sn++; ?></td>
+                            <td><?php echo strtoupper(htmlspecialchars($row['username'])); ?></td>
+                            <td class="d-none d-sm-table-cell"><?php echo $row['phonenumber']; ?></td>
+                            <td><?php echo $row['user_status']; ?></td>
+                            <td class="d-none d-md-table-cell"><?php echo $row['payment_status']; ?></td>
+                            <td>
+                                <!-- Edit Button -->
+                                <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#editCustomerModal<?php echo $row['id']; ?>">
+                                    <i class="bi bi-pencil-square"></i> Edit
+                                </button>
 
+                                <!-- Delete Button (Only for Admins) -->
+                                <?php if ($_SESSION['role'] === 'admin') : ?>
+                                    <button class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deleteCustomerModal<?php echo $row['id']; ?>">
+                                        <i class="bi bi-trash"></i> Delete
+                                    </button>
+                                <?php endif; ?>
 
-<center><h1>Customers List</h1></center>
-<input type="text" id="search" class="form-control" placeholder="Search customers...">
-<div id="searchResults"></div>
-
-<!-- Responsive Table Wrapper -->
-<div class="table-responsive">
-    <table class="table table-striped table-sm table-bordered" id="dataTable">
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Username</th>
-                <th class="d-none d-sm-table-cell">Phone Number</th> <!-- Hide on extra small screens -->
-                <th>Status</th>
-                <th class="d-none d-md-table-cell">Payment Status</th> <!-- Hide on small screens -->
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            <?php
-             $sn = 1; // Initialize Serial Number
-
-            while ($row = $result->fetch_assoc()) { ?>
-                <tr>
-                <td><?php echo $sn++; ?></td> <!-- Increment SN dynamically -->
-                <td><?php echo $row['username']; ?></td>
-                    <td class="d-none d-sm-table-cell"><?php echo $row['phonenumber']; ?></td>
-                    <td><?php echo $row['user_status']; ?></td>
-                    <td class="d-none d-md-table-cell"><?php echo $row['payment_status']; ?></td>
-                    <td>
-    <!-- Edit Button -->
-    <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#editCustomerModal<?php echo $row['id']; ?>">
-        <i class="bi bi-pencil-square"></i> Edit
-    </button>
-
-    <!-- Delete Button -->
-    <button class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deleteCustomerModal<?php echo $row['id']; ?>">
-        <i class="bi bi-trash"></i> Delete
-    </button>
-
-    <!-- Update Status Button -->
-    <button class="btn btn-warning btn-sm text-white" data-bs-toggle="modal" data-bs-target="#updateStatusModal<?php echo $row['id']; ?>">
-        <i class="bi bi-arrow-repeat"></i> Update Status
-    </button>
-</td>
-
-                </tr>
-                 <!-- Edit Customer Modal -->
+                                <!-- Update Status Button -->
+                                <button class="btn btn-warning btn-sm text-white" data-bs-toggle="modal" data-bs-target="#updateStatusModal<?php echo $row['id']; ?>">
+                                    <i class="bi bi-arrow-repeat"></i> Update Status
+                                </button>
+                            </td>
+                        </tr>
+                              <!-- Edit Customer Modal -->
   <div class="modal fade" id="editCustomerModal<?php echo $row['id']; ?>" tabindex="-1" aria-labelledby="editCustomerLabel<?php echo $row['id']; ?>" aria-hidden="true">
                     <div class="modal-dialog">
                         <form action="edit_customer.php" method="post">
@@ -177,7 +157,7 @@ if (isset($_GET['status'])) {
                                         <select class="form-control" name="user_status">
                                             <option value="Active" <?php if ($row['user_status'] == 'Active') echo 'selected'; ?>>Active</option>
                                             <option value="Inactive" <?php if ($row['user_status'] == 'Inactive') echo 'selected'; ?>>Inactive</option>
-                                            <option value="New Customers" <?php if ($row['user_status'] == 'New Customers') echo 'selected'; ?>>New Customer</option>
+                                            <option value="New Customer" <?php if ($row['user_status'] == 'New Customer') echo 'selected'; ?>>New Customer</option>
                                         </select>
                                     </div>
                                     <div class="mb-3">
@@ -194,31 +174,13 @@ if (isset($_GET['status'])) {
                                     <button type="submit" class="btn btn-warning">Update</button>
                                 </div>
                             </div>
-                        </form>
-                    </div>
-                </div>
-
-            <?php } ?>
-        </tbody>
-    </table>
+                    <?php } ?>
+                </tbody>
+            </table>
+        </div>
+    <?php endif; ?>
 </div>
-
-<!-- Add Bootstrap CSS if not already included -->
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet">
-
-
-
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
-
-<?php
-require 'footer.php';
-?>
-
- 
-
-
-                <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"></script>

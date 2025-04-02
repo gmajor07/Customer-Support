@@ -1,27 +1,71 @@
 <?php
+session_start(); // Ensure session is started
 require 'db_connection.php';
 
-if (isset($_POST['query'])) {
-    $searchText = $_POST['query'];
-    $sql = "SELECT * FROM customers WHERE username LIKE '%$searchText%' OR phonenumber LIKE '%$searchText%'";
+$searchText = isset($_POST['query']) ? $_POST['query'] : '';
+
+// Ensure the role is set
+$userRole = isset($_SESSION['role']) ? $_SESSION['role'] : '';
+$staffId = isset($_SESSION['user_id']) ? $_SESSION['user_id'] : ''; // Assuming staff has a user ID
+
+// Start building SQL query
+if (!empty($searchText)) {
+    // If staff, filter by assigned customers
+    if ($userRole === 'staff') {
+        $sql = "SELECT * FROM customers WHERE (username LIKE ? OR phonenumber LIKE ?) AND registered_by = ?";
+        $stmt = $conn->prepare($sql);
+        $searchPattern = "%$searchText%";
+        $stmt->bind_param("ssi", $searchPattern, $searchPattern, $staffId);
+    } else {
+        // Admins see all customers
+        $sql = "SELECT * FROM customers WHERE username LIKE ? OR phonenumber LIKE ?";
+        $stmt = $conn->prepare($sql);
+        $searchPattern = "%$searchText%";
+        $stmt->bind_param("ss", $searchPattern, $searchPattern);
+    }
 } else {
-    $sql = "SELECT * FROM customers";
+    if ($userRole === 'staff') {
+        // Staff sees only their assigned customers
+        $sql = "SELECT * FROM customers WHERE registered_by = ?";
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param("i", $staffId);
+    } else {
+        // Admins see all customers
+        $sql = "SELECT * FROM customers";
+        $stmt = $conn->prepare($sql);
+    }
 }
 
-$result = $conn->query($sql);
+// Execute the query
+$stmt->execute();
+$result = $stmt->get_result();
 
-while ($row = $result->fetch_assoc()) {
-    echo "<tr>
-        <td>{$row['id']}</td>
-        <td>{$row['username']}</td>
-        <td>{$row['phonenumber']}</td>
-        <td>{$row['user_status']}</td>
-        <td>{$row['payment_status']}</td>
+$sn = 1; // Initialize Serial Number
+
+while ($row = $result->fetch_assoc()) { ?>
+    <tr>
+        <td><?php echo $sn++; ?></td> <!-- Serial Number -->
+        <td><?php echo strtoupper(htmlspecialchars($row['username'])); ?></td>
+        <td class="d-none d-sm-table-cell"><?php echo htmlspecialchars($row['phonenumber']); ?></td>
+        <td><?php echo htmlspecialchars($row['user_status']); ?></td>
+        <td class="d-none d-md-table-cell"><?php echo htmlspecialchars($row['payment_status']); ?></td>
         <td>
-            <button class='btn btn-primary btn-sm' data-bs-toggle='modal' data-bs-target='#editCustomerModal{$row['id']}'>Edit</button>
-            <button class='btn btn-danger btn-sm' data-bs-toggle='modal' data-bs-target='#deleteCustomerModal{$row['id']}'>Delete</button>
-            <button class='btn btn-warning btn-sm' data-bs-toggle='modal' data-bs-target='#updateStatusModal{$row['id']}'>Update Status</button>
+            <!-- Edit Button -->
+            <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#editCustomerModal<?php echo $row['id']; ?>">
+                <i class="bi bi-pencil-square"></i> Edit
+            </button>
+
+            <!-- Delete Button (Only for Admins) -->
+            <?php if ($userRole === 'admin') : ?>
+                <button class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deleteCustomerModal<?php echo $row['id']; ?>">
+                    <i class="bi bi-trash"></i> Delete
+                </button>
+            <?php endif; ?>
+
+            <!-- Update Status Button -->
+            <button class="btn btn-warning btn-sm text-white" data-bs-toggle="modal" data-bs-target="#updateStatusModal<?php echo $row['id']; ?>">
+                <i class="bi bi-arrow-repeat"></i> Update Status
+            </button>
         </td>
-    </tr>";
-}
-?>
+    </tr>
+<?php } ?>

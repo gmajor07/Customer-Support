@@ -10,7 +10,10 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $username = $_POST['username'];
     $email = $_POST['email'];
 
-    $sql = "UPDATE users SET username = ?, email = ? WHERE id = ?";
+    $phone = $_POST['phone']; // Capture phone number
+
+    $sql = "UPDATE users SET username='$username', email='$email', phone='$phone' WHERE id='$id'";
+
     $stmt = $conn->prepare($sql);
     $stmt->bind_param("ssi", $username, $email, $id);
 

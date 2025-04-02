@@ -27,8 +27,8 @@ while ($row = $results->fetch_assoc()) {
     }
     elseif ($recipientCategory == "Partial Paid") {
         $userQuery = "SELECT phonenumber FROM customers WHERE payment_status = 'Partial Paid'";
-    } elseif ($recipientCategory == "New Customers") {
-        $userQuery = "SELECT phonenumber FROM customers WHERE user_status = 'New Customers'";
+    } elseif ($recipientCategory == "New Customer") {
+        $userQuery = "SELECT phonenumber FROM customers WHERE user_status = 'New Customer'";
     }
     elseif ($recipientCategory == "Inactive") {
         $userQuery = "SELECT phonenumber FROM customers WHERE user_status = 'Inactive'";
@@ -40,7 +40,7 @@ while ($row = $results->fetch_assoc()) {
         $phone = "255" . $user['phonenumber'];
 
         $postData = array(
-            'source_addr' => 'RUGAZE ENTP',
+            'source_addr' => 'NARET',
             'encoding' => 0,
             'message' => $message,
             'recipients' => array(array('recipient_id' => rand(1, 100), 'dest_addr' => $phone))
@@ -70,8 +70,13 @@ while ($row = $results->fetch_assoc()) {
         $newNextRun = "DATE_ADD(NOW(), INTERVAL 1 MONTH)";
     }
 
-    $updateQuery = "UPDATE scheduled_messages SET next_run = $newNextRun, status = 'sent' WHERE id = $id";
-    $conn->query($updateQuery);
+    $updateQuery = "UPDATE scheduled_messages 
+    SET next_run = " . ($newNextRun == "NULL" ? "NULL" : $newNextRun) . ", 
+        status = 'sent' 
+    WHERE id = $id";
+$conn->query($updateQuery);
+
+    
 }
 
 $conn->close();

@@ -6,11 +6,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // Sanitize and validate user input
     $username = trim($_POST['username']);
     $phonenumber = trim($_POST['phonenumber']);
+    $loggedInUserId = $_SESSION['user_id']; // Get the logged-in user ID
 
     if (!preg_match('/^[a-zA-Z\s]+$/', $username)) {
         $error = "Invalid username. Only letters and spaces are allowed.";
-    } elseif (!preg_match('/^\d{10}$/', $phonenumber)) { // Check if phone number has 9 digits (Tanzania format)
-        $error = "Invalid phone number. Ensure it has 10 digits and no special characters. ";
+    } elseif (!preg_match('/^\d{10}$/', $phonenumber)) { 
+        $error = "Invalid phone number. Ensure it has 10 digits and no special characters.";
     } else {
         // Check if the phone number already exists
         $checkStmt = $conn->prepare("SELECT id FROM customers WHERE phonenumber = ?");
@@ -22,12 +23,15 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $error = "This phone number is already registered. Please use a different number.";
         } else {
             // Default values for new fields
-            $user_status = 'New Customers'; // Inactive
-            $payment_status = 'Unpaid'; // Unpaid
+            $user_status = 'New Customer';
+            $payment_status = 'Unpaid';
+
+            // Store the ID of the logged-in user (staff or admin)
+            $registered_by_staff = $loggedInUserId;
 
             // Insert the new user if phone number doesn't exist
-            $stmt = $conn->prepare("INSERT INTO customers (username, phonenumber, user_status, payment_status) VALUES (?, ?, ?, ?)");
-            $stmt->bind_param("siss", $username, $phonenumber, $user_status, $payment_status);
+            $stmt = $conn->prepare("INSERT INTO customers (username, phonenumber, user_status, payment_status, registered_by_staff) VALUES (?, ?, ?, ?, ?)");
+            $stmt->bind_param("ssssi", $username, $phonenumber, $user_status, $payment_status, $registered_by_staff);
 
             if ($stmt->execute()) {
                 $success = "New customer recorded successfully";
@@ -44,6 +48,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 ?>
 
 
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -51,7 +56,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Register Customer</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
 
     <link href="cardstyle.css" rel="stylesheet">
 

@@ -92,3 +92,7 @@ $conn->close();
 </div>
 </body>
 </html>
+
+<?php
+require 'footer.php';
+?>

@@ -1,6 +1,7 @@
 <?php
 session_start();
 // Database connection
+error_reporting(1);
 
 require 'db_connection.php';
 
@@ -21,7 +22,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         if (password_verify($password, $user['password'])) {
             $_SESSION['user_id'] = $user['id'];
             $_SESSION['username'] = $user['username'];
-            echo "Login successful! Welcome, " . $_SESSION['username'];
+            $_SESSION['role'] = $user['role']; // Store user role (e.g., 'admin' or 'staff')
             header('location:send_messages.php');
         } else {
             $error = "Invalid password. Please enter correct password.";
@@ -49,7 +50,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 <body>
 <div class="container text-center">
     <img src="assets/images/logo.png" alt="Company Logo" class="mb-3" style="max-width: 150px;">
-    <h1 class="text-center mb-4">NARET CAMPANY LIMITED</h1>
+    <h1 class="text-center mb-4">NARET COMPANY LIMITED</h1>
     <br>
     <h3 class="text-center mb-4">Customer Support - Login</h3>
     <?php if (!empty($error)): ?>
@@ -69,6 +70,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         </div>
         <button type="submit" class="btn btn-custom w-100">Login</button>
     </form>
+
+    <p><a href="forgot_password.php">Forgot Password?</a></p>
+
 </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"></script>

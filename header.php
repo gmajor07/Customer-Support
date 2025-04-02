@@ -18,6 +18,7 @@ if (!isset($_SESSION['username'])) {
     <link rel="stylesheet" href="assets/vendors/ti-icons/css/themify-icons.css">
     
     <link href="cardstyle.css" rel="stylesheet">
+    <link href="drop.css" rel="stylesheet">
    
     <!-- Layout styles -->
     <link rel="stylesheet" href="assets/css/style.css">
@@ -29,6 +30,9 @@ if (!isset($_SESSION['username'])) {
 
 <!-- Bootstrap Bundle (includes Popper.js) -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 
   </head>
   <body>
@@ -120,21 +124,26 @@ if (!isset($_SESSION['username'])) {
               </a>
               <div class="collapse" id="ui-basic">
                 <ul class="nav flex-column sub-menu">
+                <?php if ($_SESSION['role'] === 'admin') : ?>
                   <li class="nav-item">
                     <a class="nav-link" href="add_template.php">Add Template Message</a>
                   </li>
+                  <?php endif; ?>
                   <li class="nav-item">
                     <a class="nav-link" href="templates.php">View Message Templates</a>
                   </li>
                   <li class="nav-item">
                     <a class="nav-link" href="send_messages.php">Send Message</a>
                   </li>
+                  <?php if ($_SESSION['role'] === 'admin') : ?>
+
                   <li class="nav-item">
                     <a class="nav-link" href="periodically_messages.php">Send Periodically Message</a>
                   </li>
                   <li class="nav-item">
                     <a class="nav-link" href="terminate.php">View Periodically Message</a>
                   </li>
+                  <?php endif; ?>
                 </ul>
               </div>
             </li>
@@ -161,38 +170,33 @@ if (!isset($_SESSION['username'])) {
                 </ul>
               </div>
             </li>
+            
             <li class="nav-item">
-              <a class="nav-link" data-bs-toggle="collapse" href="#icons" aria-expanded="false" aria-controls="icons">
-                <span class="menu-title">Admin</span>
-                <i class="menu-arrow"></i>
-                <i class="mdi mdi-contacts menu-icon"></i>
-              </a>
-              <div class="collapse" id="icons">
-                <ul class="nav flex-column sub-menu">
-                  <li class="nav-item">
+    <a class="nav-link" data-bs-toggle="collapse" href="#icons" aria-expanded="false" aria-controls="icons">
+        <span class="menu-title">Admin</span>
+        <i class="menu-arrow"></i>
+        <i class="mdi mdi-contacts menu-icon"></i>
+    </a>
+    <div class="collapse" id="icons">
+        <ul class="nav flex-column sub-menu">
+            <?php if ($_SESSION['role'] === 'admin') : ?>
+                <li class="nav-item">
                     <a class="nav-link" href="register.php">Registration</a>
-                  </li>
-                </ul>
-                <ul class="nav flex-column sub-menu">
-                  <li class="nav-item">
-                    <a class="nav-link" href="admin_panel.php">Admin Panel</a>
-                  </li>
-                </ul>
-              </div>
-              <div class="collapse" id="icons">
-                <ul class="nav flex-column sub-menu">
-                  <li class="nav-item">
-                    <a class="nav-link" href="logout.php">Log out</a>
-                  </li>
-
-                  <li><a class="dropdown-item" href="admin.php">
-                  <i class="mdi mdi-cached me-2 text-success"></i> Change Password</a> </li>
-                </ul>
-
-                
-                
-              </div>
+                </li>
+                <?php endif; ?>
+                <li class="nav-item">
+                    <a class="nav-link" href="admin_panel.php">Panel</a>
+                </li>
+           
+            <li class="nav-item">
+                <a class="nav-link" href="logout.php">Log out</a>
             </li>
+            <li><a class="dropdown-item" href="admin.php">
+                <i class="mdi mdi-cached me-2 text-success"></i> Change Password</a>
+            </li>
+        </ul>
+    </div>
+</li>
            
           </ul>
         </nav>

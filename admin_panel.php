@@ -2,18 +2,22 @@
 require 'header.php';
 require 'db_connection.php';
 
+// Ensure the role is set
+$userRole = isset($_SESSION['role']) ? $_SESSION['role'] : '';
+$staffId = isset($_SESSION['user_id']) ? $_SESSION['user_id'] : ''; // Assuming staff has a user ID
 
-
-// Fetch Customers
-$sql = "SELECT * FROM users ORDER BY id DESC";
+// Fetch Users
+$sql = "SELECT * FROM users WHERE id = '$staffId' ORDER BY id DESC"; // Corrected query
 $result = $conn->query($sql);
+
 ?>
 
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Admin Panel</title>
+    <title>Panel</title>
+    
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css">
 </head>
 <body>
@@ -64,7 +68,7 @@ if (isset($_GET['email'])) {
 </script>
 
 
-<center><h1>Admin Panel</h1></center>
+<center><h1>Panel</h1></center>
 
 
 <!-- Responsive Table Wrapper -->
@@ -75,6 +79,8 @@ if (isset($_GET['email'])) {
                 <th>ID</th>
                 <th>Username</th>
                 <th>Email</th>
+                <th>Phone</th>
+                <th>Role</th>
                 <th>Actions</th>
             </tr>
         </thead>
@@ -85,18 +91,24 @@ if (isset($_GET['email'])) {
             while ($row = $result->fetch_assoc()) { ?>
                 <tr>
                 <td><?php echo $sn++; ?></td> <!-- Increment SN dynamically -->
-                <td><?php echo $row['username']; ?></td>
+                <td><?php echo ucfirst($row['username']); ?></td>
                     <td><?php echo $row['email']; ?></td>
+                    <td><?php echo $row['phone']; ?></td>
+                    <td><?php echo $row['role']; ?></td>
                     <td>
     <!-- Edit Button -->
     <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#editCustomerModal<?php echo $row['id']; ?>">
         <i class="bi bi-pencil-square"></i> Edit
     </button>
 
+    <?php if ($_SESSION['role'] === 'admin') : ?>
+
     <!-- Delete Button -->
     <button class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deleteCustomerModal<?php echo $row['id']; ?>">
         <i class="bi bi-trash"></i> Delete
     </button>
+
+    <?php endif; ?>
 
 
 </td>
@@ -122,6 +134,12 @@ if (isset($_GET['email'])) {
                                         <label class="form-label">Email</label>
                                         <input type="email" class="form-control" name="email" value="<?php echo $row['email']; ?>" required>
                                     </div>
+
+                                    <div class="mb-3">
+    <label class="form-label">Phone</label>
+    <input type="text" class="form-control" name="phone" value="<?php echo $row['phone']; ?>" required>
+</div>
+
                                 </div>
                                 <div class="modal-footer">
                                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>

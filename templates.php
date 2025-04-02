@@ -39,7 +39,10 @@ $result = $conn->query($sql);
                     <tr>
                         <th>SN</th> <!-- Changed from ID to SN -->
                         <th class="d-none d-sm-table-cell">Message</th>
+                        <?php if ($_SESSION['role'] === 'admin') : ?>
                         <th>Actions</th>
+                        <?php endif; ?>
+
                     </tr>
                 </thead>
                 <tbody>
@@ -50,8 +53,16 @@ $result = $conn->query($sql);
                             <td><?php echo $sn++; ?></td> <!-- Increment SN dynamically -->
                             <td class="wrap-text"><?php echo nl2br(htmlspecialchars($row['message'])); ?></td>
                             <td>
-                                <button class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#editModal<?php echo $row['id']; ?>">Edit</button>
-                                <button class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deleteModal<?php echo $row['id']; ?>">Delete</button>
+                            <?php if ($_SESSION['role'] === 'admin') : ?>
+                                <button class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#editModal<?php echo $row['id']; ?>">
+                                <i class="bi bi-pencil-square"></i> Edit
+    </button>
+  
+                                <button class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deleteModal<?php echo $row['id']; ?>">
+                                <i class="bi bi-trash"></i> Delete
+    </button>
+
+    <?php endif; ?>
                             </td>
                         </tr>
 
@@ -72,7 +83,7 @@ $result = $conn->query($sql);
                                             </div>
                                         </div>
                                         <div class="modal-footer">
-                                            <button type="submit" class="btn btn-primary">Save Changes</button>
+                                            <button type="submit" class="btn btn-warning">Save Changes</button>
                                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                                         </div>
                                     </div>
@@ -107,7 +118,6 @@ $result = $conn->query($sql);
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
 

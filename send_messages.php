@@ -2,11 +2,21 @@
 require 'header.php';
 require 'db_connection.php';
 
+// Check if session is started and role is set
+if (!isset($_SESSION['role'])) {
+    // If the session is not set, handle the error (user must be logged in)
+    echo json_encode(['error' => "User not logged in"]);
+    exit;
+}
+
+
 
 // Function to send messages
 function send_message($phone, $message, $api_key, $secret_key) {
     $id = rand(1, 100);
-    $phone = "255$phone"; // Ensure the format is correct
+// Ensure the phone number starts with '255' and remove any leading zeros
+$phone = ltrim($phone, '0');
+$phone = "255$phone";  // Prefix with '255'
 
     $postData = array(
         'source_addr' => 'NARET',
@@ -72,28 +82,40 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         exit;
     }
 
-    $userQuery = "SELECT phonenumber FROM customers";
+    // Start query for customers based on the recipient category
+    $userQuery = "SELECT phonenumber FROM customers WHERE 1"; // Default query
+    
     switch ($recipientCategory) {
         case "Paid":
-            $userQuery = "SELECT phonenumber FROM customers WHERE payment_status = 'Paid'";
+            $userQuery .= " AND payment_status = 'Paid'";
             break;
         case "Partial Paid":
-            $userQuery = "SELECT phonenumber FROM customers WHERE payment_status = 'Partial Paid'";
+            $userQuery .= " AND payment_status = 'Partial Paid'";
             break;
         case "Unpaid":
-            $userQuery = "SELECT phonenumber FROM customers WHERE payment_status = 'Unpaid'";
+            $userQuery .= " AND payment_status = 'Unpaid'";
             break;
-        case "New Customers":
-            $userQuery = "SELECT phonenumber FROM customers WHERE user_status = 'New Customers'";
+        case "New Customer":
+            $userQuery .= " AND user_status = 'New Customer'";
             break;
         case "Active":
-            $userQuery = "SELECT phonenumber FROM customers WHERE user_status = 'Active'";
+            $userQuery .= " AND user_status = 'Active'";
             break;
         case "Inactive":
-            $userQuery = "SELECT phonenumber FROM customers WHERE user_status = 'Inactive'";
+            $userQuery .= " AND user_status = 'Inactive'";
             break;
     }
 
+    // Filter based on the user's role stored in the session
+    if ($_SESSION['role'] === 'staff') {
+        // Staff users registered customers with `registered_by_staff = 0`
+        $userQuery .= " AND registered_by_staff = 0";
+    } elseif ($_SESSION['role'] === 'admin') {
+        // Admin users registered customers with `registered_by_staff = 1`
+        $userQuery .= " AND registered_by_staff = 1";
+    }
+
+    // Execute the query to get the users
     $users = $conn->query($userQuery);
     if ($users->num_rows > 0) {
         while ($user = $users->fetch_assoc()) {
@@ -140,14 +162,17 @@ $remaining_messages = json_decode($remaining_messages, true)['balance'] ?? 'Unav
             <div class="mb-3">
                 <label for="template" class="form-label">Choose a Template</label>
                 <select id="template" name="template_id" class="form-select">
-                    <option value="none">-- Select a Template --</option>
-                    <?php 
-                    $templateQuery = "SELECT * FROM templates";
-                    $templates = $conn->query($templateQuery);
-                    while ($template = $templates->fetch_assoc()): ?>
-                        <option value="<?= $template['id']; ?>"><?= htmlspecialchars($template['title']); ?></option>
-                    <?php endwhile; ?>
-                </select>
+    <option value="none" data-message="">-- Select a Template --</option>
+    <?php 
+    $templateQuery = "SELECT * FROM templates";
+    $templates = $conn->query($templateQuery);
+    while ($template = $templates->fetch_assoc()): ?>
+        <option value="<?= $template['id']; ?>" data-message="<?= htmlspecialchars($template['message']); ?>">
+            <?= htmlspecialchars($template['title']); ?>
+        </option>
+    <?php endwhile; ?>
+</select>
+
             </div>
 
             <div class="mb-3">
@@ -162,7 +187,7 @@ $remaining_messages = json_decode($remaining_messages, true)['balance'] ?? 'Unav
                     <option value="Paid">Paid Customers</option>
                     <option value="Partial Paid">Partial Paid Customers</option>
                     <option value="Unpaid">Unpaid Customers</option>
-                    <option value="New Customers">New Customers</option>
+                    <option value="New Customer">New Customers</option>
                     <option value="Active">Active Customers</option>
                     <option value="Inactive">Inactive Customers</option>
                 </select>
@@ -216,20 +241,68 @@ function updateBalance() {
     fetch('get_balance.php')
         .then(response => response.json())
         .then(data => {
-            if (data.balance !== undefined) {
-                document.getElementById('sms-balance').innerText = ` ${data.balance}`;
+            let balance = parseInt(data.balance, 10);
+            let balanceElement = document.getElementById('sms-balance');
+
+            if (!isNaN(balance)) {
+                balanceElement.innerText = ` ${balance}`;
+
+                // Remove previous classes
+                balanceElement.classList.remove("text-success", "text-warning", "text-danger", "blink");
+
+                if (balance === 0) {
+                    balanceElement.classList.add("text-danger", "blink"); // Deep red + blinking
+                } else if (balance > 0 && balance < 10) {
+                    balanceElement.classList.add("text-danger", "blink"); // Red + blinking
+                } else if (balance >= 10 && balance < 100) {
+                    balanceElement.classList.add("text-danger"); // Normal red
+                } else if (balance >= 100 && balance < 400) {
+                    balanceElement.classList.add("text-warning"); // Orange
+                } else {
+                    balanceElement.classList.add("text-success"); // Green
+                }
             } else {
-                document.getElementById('sms-balance').innerText = " Balance unavailable";
+                balanceElement.innerText = " Balance unavailable";
+                balanceElement.classList.add("text-danger", "blink"); // Default to red blinking if unavailable
             }
         })
         .catch(error => {
-            document.getElementById('sms-balance').innerText = "Error fetching balance";
+            let balanceElement = document.getElementById('sms-balance');
+            balanceElement.innerText = "Error fetching balance";
+            balanceElement.classList.add("text-danger", "blink"); // Show error in red + blinking
             console.error("Error:", error);
         });
 }
 
+// Blinking effect for low balance
+const style = document.createElement("style");
+style.innerHTML = `
+    .blink {
+        animation: blinker 1s linear infinite;
+    }
+    @keyframes blinker {
+        50% { opacity: 0; }
+    }
+`;
+document.head.appendChild(style);
+
+// Call updateBalance on page load
+updateBalance();
+
+
 
     </script>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    document.getElementById("template").addEventListener("change", function () {
+        var selectedOption = this.options[this.selectedIndex];
+        var message = selectedOption.getAttribute("data-message"); // Get message from selected option
+        document.getElementById("manual_message").value = message || ""; // Display in textarea
+    });
+});
+</script>
+
 </body>
 </html>
 

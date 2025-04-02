@@ -2,6 +2,7 @@
 require 'db_connection.php';
 require 'header.php';
 
+
 // Fetch all message templates
 $templateQuery = "SELECT * FROM templates";
 $templates = $conn->query($templateQuery);
@@ -92,7 +93,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 <option value="Paid">Paid Customers</option>
                 <option value="Partial Paid">Partial Paid Customers</option>
                 <option value="Unpaid">Unpaid Customers</option>
-                <option value="New Customers">New Customers</option>
+                <option value="New Customer">New Customer</option>
                 <option value="Active">Active Customers</option>
                 <option value="Inactive">Inactive Customers</option>
             </select>
@@ -103,3 +104,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 </div>
 </body>
 </html>
+<?php
+require 'footer.php';
+?>
+<script>
+    setInterval(function() {
+    fetch('scheduled_send.php');
+}, 60000); // Runs every 60 seconds
+
+</script>
